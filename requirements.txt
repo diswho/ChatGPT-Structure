@@ -1,0 +1,7 @@
+fastapi==0.109.0
+passlib==1.7.4
+pydantic_settings==2.1.0
+python-dotenv==1.0.0
+python_jose==3.3.0
+SQLAlchemy==2.0.25
+bcrypt>=3.2.0,<4.0.0
