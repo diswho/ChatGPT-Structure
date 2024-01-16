@@ -2,10 +2,9 @@
 from fastapi.security import OAuth2PasswordRequestForm
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
-from app.api.v1.models.user import User
+from app.api.v1.models.user import UserModel, UserResponseModel
 from app.api.v1.dependencies.database import get_db_session
 from app.core.security import get_password_hash
-from app.api.v1.models import UserModel
 from app.api.v1.dependencies.auth import authenticate_user
 from app.core.security import create_access_token
 
@@ -13,15 +12,23 @@ from app.core.security import create_access_token
 router = APIRouter()
 
 
-@router.post("/create-user/")
-async def create_user(user: User, db: Session = Depends(get_db_session)):
+@router.post("/create-user/", response_model=UserResponseModel)
+async def create_user(user: UserModel, db: Session = Depends(get_db_session)) -> UserResponseModel:
     hashed_password = get_password_hash(user.password)
-    db_user = UserModel(username=user.username,
-                        email=user.email, hashed_password=hashed_password)
+    db_user = UserModel(username=user.username, email=user.email, hashed_password=hashed_password)
     db.add(db_user)
     db.commit()
     db.refresh(db_user)
-    return {"username": user.username, "email": user.email}
+    return UserResponseModel(username=user.username, email=user.email)
+# @router.post("/create-user/", response_model=UserResponseModel)
+# async def create_user(user: UserModel, db: Session = Depends(get_db_session)) -> UserModel:
+#     hashed_password = get_password_hash(user.password)
+#     db_user = UserModel(username=user.username,
+#                         email=user.email, hashed_password=hashed_password)
+#     db.add(db_user)
+#     db.commit()
+#     db.refresh(db_user)
+#     return {"username": user.username, "email": user.email}
 
 
 @router.post("/login")
