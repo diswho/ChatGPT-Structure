@@ -1,24 +1,61 @@
-# app/main.py
-from fastapi import FastAPI, Depends, HTTPException
-from app.api.v1.main import router as v1_router
-from app.api.v1.dependencies.auth import get_current_user
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+
+from app.api.v1 import endpoints
+from app.core.database import engine_internal, engine_external, SessionLocalInternal, SessionLocalExternal,Base
+
 from app.core.config import settings
+from app.crud.user import create_user
+from app.schemas.user import UserCreate
+
+
+# Initialize the database
+def init_db():
+    db = SessionLocalInternal()
+    Base.metadata.create_all(bind=engine_internal)
+
+    # Create the first superuser
+    superuser = create_user(
+        db,
+        UserCreate(email=settings.FIRST_SUPERUSER,
+                   password=settings.FIRST_SUPERUSER_PASSWORD),
+    )
+
+    db.close()
+
+
+# init_db()
 
 app = FastAPI()
 
-if settings.debug:
-    from fastapi.middleware.cors import CORSMiddleware
-    app.add_middleware(
-        CORSMiddleware,
-        allow_origins=["*"],
-        allow_credentials=True,
-        allow_methods=["*"],
-        allow_headers=["*"],
-    )
+# Set CORS origins
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=settings.BACKEND_CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
-app.include_router(v1_router, prefix="/v1", tags=["v1"])
+# Dependency for internal database
 
 
-@app.get("/secure-endpoint", dependencies=[Depends(get_current_user)])
-async def secure_endpoint(current_user: dict = Depends(get_current_user)):
-    return {"message": "You have access to this secure endpoint!", "username": current_user["username"]}
+def get_db_internal():
+    db = SessionLocalInternal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Dependency for external database
+
+
+def get_db_external():
+    db = SessionLocalExternal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+
+app.include_router(endpoints.router, prefix=settings.API_V1_STR)

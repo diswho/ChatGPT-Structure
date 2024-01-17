@@ -5,7 +5,7 @@ python -m venv venv
 ```
 
 ```sh
-pip install pipreqs uvicorn httpx python-dotenv python-jose python-multipart
+pip install uvicorn httpx python-dotenv python-jose python-multipart
 ```
 
 ```sh
